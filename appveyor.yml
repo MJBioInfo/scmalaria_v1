@@ -9,17 +9,36 @@ environment:
     secure: NYfvv8PUgDoYw+spLW28mvbOzErgBYMH/VvS4igYdN5J6PUM5di66PmTzHtLFgz9
 
 install:
-  - python -m pip install --upgrade pip setuptools wheel
-  # We install the heavy scientific dependencies FIRST without strict versions 
-  # to ensure we get pre-built wheels that actually work on these OS images.
-  - pip install numpy pandas scanpy anndata
-  # NOW we force your strict Flet version
-  - pip install flet==0.27.1
-  # Install the rest from requirements
-  - pip install -r requirements.txt
+  # --- macOS Setup using Conda (to bypass llvmlite build error) ---
+  - cmd: "" # Ignore cmd on mac
+    sh: |
+      if [[ "$APPVEYOR_BUILD_WORKER_IMAGE" == *"macOS"* ]]; then
+        brew install --cask miniforge
+        source /usr/local/Caskroom/miniforge/base/etc/profile.d/conda.sh
+        conda create -n scmalaria_env python=3.11 -y
+        conda activate scmalaria_env
+        conda install -y -c conda-forge numpy pandas scanpy anndata llvmlite
+        pip install flet==0.27.1 gdown leidenalg igraph umap-learn
+      fi
+
+  # --- Windows Setup ---
+  - sh: "" # Ignore sh on windows
+    cmd: |
+      python -m pip install --upgrade pip setuptools wheel
+      pip install --only-binary=:all: numpy pandas scanpy anndata
+      pip install flet==0.27.1
+      pip install -r requirements.txt
 
 build_script:
-  - python -m flet pack main.py --name scMalaria --product-name "scMalaria" --product-version "0.1.0"
+  - cmd: python -m flet pack main.py --name scMalaria --product-name "scMalaria" --product-version "0.1.0"
+    sh: |
+      if [[ "$APPVEYOR_BUILD_WORKER_IMAGE" == *"macOS"* ]]; then
+        source /usr/local/Caskroom/miniforge/base/etc/profile.d/conda.sh
+        conda activate scmalaria_env
+        python -m flet pack main.py --name scMalaria --product-name "scMalaria" --product-version "0.1.0"
+      else
+        python -m flet pack main.py --name scMalaria --product-name "scMalaria" --product-version "0.1.0"
+      fi
 
 test: off
 
@@ -30,7 +49,6 @@ deploy:
   on:
     appveyor_repo_tag: true
 
-# --- OS Specific Packaging ---
 for:
 -
   matrix:
