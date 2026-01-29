@@ -1,0 +1,50 @@
+image:
+  - Visual Studio 2022
+  - macOS-Sequoia
+
+stack: python 3.10
+
+environment:
+  GITHUB_TOKEN:
+    secure: NYfvv8PUgDoYw+spLW28mvbOzErgBYMH/VvS4igYdN5J6PUM5di66PmTzHtLFgz9
+
+install:
+  - pip install -r requirements.txt
+  - pip install flet  # Ensures the flet CLI is available
+
+build_script:
+  # This command uses your pyproject.toml settings automatically
+  - flet pack main.py --name scMalaria --product-name "scMalaria" --product-version "0.1.0"
+
+test: off
+
+# This section tells AppVeyor to only create a GitHub Release when you "Tag" a commit
+deploy:
+  provider: GitHub
+  auth_token: $(GITHUB_TOKEN)
+  artifact: /.*\.zip|.*\.tar\.gz/
+  on:
+    appveyor_repo_tag: true
+
+# --- OS Specific Packaging ---
+
+for:
+-
+  matrix:
+    only:
+      - image: Visual Studio 2022
+  after_build:
+    - 7z a scMalaria-windows.zip %CD%\dist\*.exe
+  artifacts:
+    - path: scMalaria-windows.zip
+      name: WindowsApp
+
+-
+  matrix:
+    only:
+      - image: macOS-Sequoia
+  after_build:
+    - tar -czvf scMalaria-macos.tar.gz -C dist scMalaria.app
+  artifacts:
+    - path: scMalaria-macos.tar.gz
+      name: macOSApp
