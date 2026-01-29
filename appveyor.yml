@@ -8,37 +8,17 @@ environment:
   GITHUB_TOKEN:
     secure: NYfvv8PUgDoYw+spLW28mvbOzErgBYMH/VvS4igYdN5J6PUM5di66PmTzHtLFgz9
 
+# Standard install for both platforms
 install:
-  # --- macOS Setup using Conda (to bypass llvmlite build error) ---
-  - cmd: "" # Ignore cmd on mac
-    sh: |
-      if [[ "$APPVEYOR_BUILD_WORKER_IMAGE" == *"macOS"* ]]; then
-        brew install --cask miniforge
-        source /usr/local/Caskroom/miniforge/base/etc/profile.d/conda.sh
-        conda create -n scmalaria_env python=3.11 -y
-        conda activate scmalaria_env
-        conda install -y -c conda-forge numpy pandas scanpy anndata llvmlite
-        pip install flet==0.27.1 gdown leidenalg igraph umap-learn
-      fi
-
-  # --- Windows Setup ---
-  - sh: "" # Ignore sh on windows
-    cmd: |
-      python -m pip install --upgrade pip setuptools wheel
-      pip install --only-binary=:all: numpy pandas scanpy anndata
-      pip install flet==0.27.1
-      pip install -r requirements.txt
+  - python -m pip install --upgrade pip setuptools wheel
+  # Use --only-binary to avoid the 'llvmlite/meson' compilation errors
+  - pip install --only-binary=:all: numpy pandas scanpy anndata
+  - pip install flet==0.27.1
+  - pip install -r requirements.txt
 
 build_script:
-  - cmd: python -m flet pack main.py --name scMalaria --product-name "scMalaria" --product-version "0.1.0"
-    sh: |
-      if [[ "$APPVEYOR_BUILD_WORKER_IMAGE" == *"macOS"* ]]; then
-        source /usr/local/Caskroom/miniforge/base/etc/profile.d/conda.sh
-        conda activate scmalaria_env
-        python -m flet pack main.py --name scMalaria --product-name "scMalaria" --product-version "0.1.0"
-      else
-        python -m flet pack main.py --name scMalaria --product-name "scMalaria" --product-version "0.1.0"
-      fi
+  # This creates the 'dist' folder
+  - python -m flet pack main.py --name scMalaria --product-name "scMalaria" --product-version "0.1.0"
 
 test: off
 
@@ -49,12 +29,15 @@ deploy:
   on:
     appveyor_repo_tag: true
 
+# --- OS Specific Packaging ---
 for:
 -
   matrix:
     only:
       - image: Visual Studio 2022
   after_build:
+    # Check if dist exists, then zip
+    - dir dist
     - 7z a scMalaria-windows.zip %CD%\dist\*.exe
   artifacts:
     - path: scMalaria-windows.zip
@@ -65,6 +48,8 @@ for:
     only:
       - image: macOS-Sequoia
   after_build:
+    # Check if dist exists, then tar
+    - ls -R dist
     - tar -czvf scMalaria-macos.tar.gz -C dist scMalaria.app
   artifacts:
     - path: scMalaria-macos.tar.gz
