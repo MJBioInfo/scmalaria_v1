@@ -2,7 +2,6 @@ image:
   - Visual Studio 2022
   - macOS-Sequoia
 
-# Upgraded to 3.11 to support anndata 0.12.7
 stack: python 3.11
 
 environment:
@@ -10,13 +9,16 @@ environment:
     secure: NYfvv8PUgDoYw+spLW28mvbOzErgBYMH/VvS4igYdN5J6PUM5di66PmTzHtLFgz9
 
 install:
-  # 1. Force the most modern pip/setuptools to find pre-built wheels
   - python -m pip install --upgrade pip setuptools wheel
-  # 2. Install only from your requirements.txt (ensures Flet 0.27.1)
+  # We install the heavy scientific dependencies FIRST without strict versions 
+  # to ensure we get pre-built wheels that actually work on these OS images.
+  - pip install numpy pandas scanpy anndata
+  # NOW we force your strict Flet version
+  - pip install flet==0.27.1
+  # Install the rest from requirements
   - pip install -r requirements.txt
 
 build_script:
-  # Using 'python -m flet' ensures it uses the specific version in your site-packages
   - python -m flet pack main.py --name scMalaria --product-name "scMalaria" --product-version "0.1.0"
 
 test: off
