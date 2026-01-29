@@ -2,23 +2,25 @@ image:
   - Visual Studio 2022
   - macOS-Sequoia
 
-stack: python 3.10
+# Upgraded to 3.11 to support anndata 0.12.7
+stack: python 3.11
 
 environment:
   GITHUB_TOKEN:
     secure: NYfvv8PUgDoYw+spLW28mvbOzErgBYMH/VvS4igYdN5J6PUM5di66PmTzHtLFgz9
 
 install:
+  # 1. Force the most modern pip/setuptools to find pre-built wheels
+  - python -m pip install --upgrade pip setuptools wheel
+  # 2. Install only from your requirements.txt (ensures Flet 0.27.1)
   - pip install -r requirements.txt
-  - pip install flet  # Ensures the flet CLI is available
 
 build_script:
-  # This command uses your pyproject.toml settings automatically
-  - flet pack main.py --name scMalaria --product-name "scMalaria" --product-version "0.1.0"
+  # Using 'python -m flet' ensures it uses the specific version in your site-packages
+  - python -m flet pack main.py --name scMalaria --product-name "scMalaria" --product-version "0.1.0"
 
 test: off
 
-# This section tells AppVeyor to only create a GitHub Release when you "Tag" a commit
 deploy:
   provider: GitHub
   auth_token: $(GITHUB_TOKEN)
@@ -27,7 +29,6 @@ deploy:
     appveyor_repo_tag: true
 
 # --- OS Specific Packaging ---
-
 for:
 -
   matrix:
