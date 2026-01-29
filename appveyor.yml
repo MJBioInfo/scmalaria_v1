@@ -8,16 +8,21 @@ environment:
   GITHUB_TOKEN:
     secure: NYfvv8PUgDoYw+spLW28mvbOzErgBYMH/VvS4igYdN5J6PUM5di66PmTzHtLFgz9
 
-# Standard install for both platforms
 install:
+  # Windows: Force 64-bit Python 3.11 path and upgrade pip
+  - cmd: SET PATH=C:\Python311-x64;C:\Python311-x64\Scripts;%PATH%
   - python -m pip install --upgrade pip setuptools wheel
-  # Use --only-binary to avoid the 'llvmlite/meson' compilation errors
-  - pip install --only-binary=:all: numpy pandas scanpy anndata
+  
+  # Install dependencies one by one to avoid the parser error
+  - pip install numpy==1.26.4
+  - pip install pandas==2.2.2
+  - pip install scanpy==1.10.1
+  - pip install anndata==0.10.7
   - pip install flet==0.27.1
+  - pip install gdown leidenalg igraph umap-learn
   - pip install -r requirements.txt
 
 build_script:
-  # This creates the 'dist' folder
   - python -m flet pack main.py --name scMalaria --product-name "scMalaria" --product-version "0.1.0"
 
 test: off
@@ -29,15 +34,12 @@ deploy:
   on:
     appveyor_repo_tag: true
 
-# --- OS Specific Packaging ---
 for:
 -
   matrix:
     only:
       - image: Visual Studio 2022
   after_build:
-    # Check if dist exists, then zip
-    - dir dist
     - 7z a scMalaria-windows.zip %CD%\dist\*.exe
   artifacts:
     - path: scMalaria-windows.zip
@@ -48,8 +50,6 @@ for:
     only:
       - image: macOS-Sequoia
   after_build:
-    # Check if dist exists, then tar
-    - ls -R dist
     - tar -czvf scMalaria-macos.tar.gz -C dist scMalaria.app
   artifacts:
     - path: scMalaria-macos.tar.gz
